@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Razin's Quest to Alia</title>
+<style>
+:root{--ink:#26334a;--cream:#fff8e9;--pink:#f5a9c2;--green:#4c9b62}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(145deg,#17263d,#314d5d);font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink);min-height:100vh;padding:14px;display:flex;justify-content:center;align-items:center}
+#gameShell{width:min(1050px,100%);background:var(--cream);border:5px solid #253752;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px #0006}
+header{background:#2d405d;color:#fff;padding:13px 17px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+h1{font-size:clamp(19px,4vw,28px);margin:0}header p{margin:2px 0 0;color:#d6e3f0;font-size:12px}
+.hud{display:flex;gap:7px;flex-wrap:wrap}.chip{background:#ffffff1c;border:1px solid #ffffff25;border-radius:99px;padding:7px 10px;font-size:13px;font-weight:800}
+main{padding:14px}.intro{display:flex;justify-content:space-between;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:11px}.intro h2{margin:0;font-size:20px}.intro p{margin:3px 0 0;color:#647087;font-size:13px}
+#scene{position:relative;border:4px solid #293b56;border-radius:13px;overflow:hidden;background:#91cfe0}
+canvas{width:100%;height:auto;display:block;image-rendering:pixelated;touch-action:none}
+#areaLabel{position:absolute;top:9px;left:10px;padding:6px 10px;border-radius:8px;background:#fff9e8e8;font-weight:900;font-size:12px}
+#toast{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);background:#203149ed;color:#fff;padding:8px 12px;border-radius:9px;font-size:12px;text-align:center;width:max-content;max-width:92%;pointer-events:none}
+#panels{display:grid;grid-template-columns:1.15fr .85fr;gap:11px;margin-top:12px}
+.panel{background:#fff;border:2px solid #e2e5e9;border-radius:12px;padding:11px 13px;min-width:0}.panel h3{margin:0 0 5px;font-size:15px}.panel p{margin:3px 0;color:#647087;font-size:13px;line-height:1.4}
+#objective{font-weight:750;color:#34445d!important}.taskline{display:flex;gap:7px;align-items:center;margin-top:5px;font-size:12px;color:#4d5c70}.tick{width:18px;height:18px;display:grid;place-items:center;background:#edf0f2;border-radius:5px;flex:none}.taskline.done .tick{background:#d7f2d7;color:#27743b;font-weight:900}
+#bag{font-size:13px;line-height:1.6;color:#526078}
+.controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:11px;flex-wrap:wrap}.hint{font-size:12px;color:#647087}
+button{font:inherit;border:0;border-radius:10px;background:#315f47;color:white;padding:10px 14px;font-weight:850;box-shadow:0 3px 0 #203f30;cursor:pointer}
+button:active{transform:translateY(2px);box-shadow:0 1px 0 #203f30}.soft{background:#586981;box-shadow:0 3px 0 #354256}
+.touch{display:none;align-items:center;gap:6px}.touch button{min-width:43px;padding:12px 13px;font-size:18px;touch-action:none}.touch .attack{background:#a94b61;box-shadow:0 3px 0 #703342;font-size:13px}
+#startScreen,#ending{padding:30px 18px;text-align:center;background:linear-gradient(#e4f3ec,#fff7e8)}
+#startScreen h2,#ending h2{font-size:clamp(25px,5vw,39px);margin:7px 0}#startScreen p,#ending p{max-width:620px;margin:8px auto 17px;line-height:1.55;color:#56637a}
+#startScreen .hero{font-size:65px}#ending{display:none;background:linear-gradient(#f9d6df,#fff3d9)}
+#ending .emoji{font-size:65px}#ending h2{color:#a74469}
+#gameUI{display:none}
+footer{text-align:center;color:#8490a0;font-size:11px;padding:0 10px 12px}
+@media(max-width:650px){body{padding:0;background:#253650}#gameShell{border:0;border-radius:0;min-height:100vh}main{padding:9px}#panels{grid-template-columns:1fr}.touch{display:flex}.hint{display:none}.controls{justify-content:center}header{padding:11px 13px}}
+</style>
+</head>
+<body>
+<div id="gameShell">
+<header><div><h1>🗺️ Razin's Quest to Alia</h1><p>A block-world adventure made with love</p></div><div class="hud"><span class="chip" id="worldChip">World 0 / 3</span><span class="chip" id="heartChip">❤️ 3</span><span class="chip" id="itemChip">💎 0</span></div></header>
+<section id="startScreen">
+ <div class="hero">🧑🏻‍🌾🌷</div><h2>A journey to find Alia</h2>
+ <p>Razin has received a little note from Alia. To reach her beautiful garden, he must explore three blocky worlds, collect magical items and defeat the monsters guarding the way. His adventure starts now.</p>
+ <button id="startBtn">Begin Razin's adventure ▶</button>
+</section>
+<main id="gameUI">
+ <div class="intro"><div><h2 id="worldTitle">🌳 The Green Meadow</h2><p id="story">A quiet meadow… but something is hiding nearby.</p></div><button class="soft" id="restartBtn">↻ Restart</button></div>
+ <div id="scene"><canvas id="world" width="800" height="460"></canvas><div id="areaLabel">WORLD 1 · MEADOW</div><div id="toast">Explore the meadow!</div></div>
+ <div id="panels">
+  <section class="panel"><h3>📜 Mission</h3><p id="objective">Collect the meadow gems and defeat the slime.</p><div id="tasks"></div></section>
+  <section class="panel"><h3>🎒 Razin's inventory</h3><div id="bag">No treasures yet.</div><p style="margin-top:7px">Tip: Walk close to items to collect them. Face a monster and press Attack!</p></section>
+ </div>
+ <div class="controls"><div class="hint">Move: WASD / arrow keys · Attack: Space · Touch controls available below</div><div class="touch"><button data-move="up">▲</button><button data-move="left">◀</button><button data-move="down">▼</button><button data-move="right">▶</button><button class="attack" id="attackTouch">⚔ ATTACK</button></div><button id="actionBtn">⚔ Attack / Interact</button></div>
+</main>
+<section id="ending"><div class="emoji">🌸🏡🌷</div><h2>Razin, you found Alia!</h2><p id="endingCopy"></p><div style="font-size:58px;margin:10px">🧑🏻‍🌾 💗 👩🏻‍🌸</div><p><b>Every step brought you closer. The best reward was waiting at the end all along. ❤️</b></p><button id="againBtn">Play the adventure again</button></section>
+<footer>Made for Razin & Alia · A little pixel-world love story</footer>
+</div>
+<script>
+const c=document.getElementById('world'),g=c.getContext('2d'),$=id=>document.getElementById(id);
+const worlds=[
+ {title:'🌳 The Green Meadow',label:'WORLD 1 · MEADOW',story:'A peaceful meadow. Gather 3 meadow gems and defeat the wandering slime.',objective:'Collect 3 meadow gems and defeat the slime.',ground:'#79b96a',sky:'#9bd9e8',item:'💎',itemName:'Meadow Gems',monster:'🟢',monsterName:'Meadow Slime',count:3},
+ {title:'🌲 The Whispering Forest',label:'WORLD 2 · FOREST',story:'The forest guardian protects the Moonstone. Collect 3 moonstones and beat the forest goblin.',objective:'Collect 3 moonstones and defeat the forest goblin.',ground:'#57955d',sky:'#a4d4b5',item:'🌙',itemName:'Moonstones',monster:'👾',monsterName:'Forest Goblin',count:3},
+ {title:'⛰️ The Crystal Mountains',label:'WORLD 3 · MOUNTAINS',story:'The final guardian stands between Razin and Alia. Collect 3 star crystals and defeat it.',objective:'Collect 3 star crystals and defeat the final guardian.',ground:'#a18cb7',sky:'#c1c9ed',item:'⭐',itemName:'Star Crystals',monster:'👹',monsterName:'Mountain Guardian',count:3}
+];
+let level=0,hero={x:90,y:350,dir:1},items=[],monster={},collected=0,monsterHP=2,hearts=3,started=false,won=false,toastTimer=null,attackFlash=0;
+function say(t){$('toast').textContent=t;clearTimeout(toastTimer);toastTimer=setTimeout(()=>{$('toast').textContent='Explore, collect treasures and watch out for monsters!'},2400)}
+function resetLevel(){let w=worlds[level];collected=0;monsterHP=level===2?3:2;hero={x:90,y:350,dir:1};items=[{x:270,y:340},{x:420,y:285},{x:570,y:355}];monster={x:690,y:350,alive:true,move:0};$('worldTitle').textContent=w.title;$('story').textContent=w.story;$('areaLabel').textContent=w.label;$('objective').textContent=w.objective;updateUI();draw()}
+function updateUI(){
+ $('worldChip').textContent=`World ${level+1} / 3`;$('heartChip').textContent='❤️ '+hearts;$('itemChip').textContent='💎 '+collected+'/3';
+ let w=worlds[level];$('tasks').innerHTML=[`Collect 3 ${w.itemName.toLowerCase()}`,`Defeat the ${w.monsterName.toLowerCase()}`,`Unlock the path to the next world`].map((t,i)=>{let d=i===0?collected>=3:i===1?!monster.alive:collected>=3&&!monster.alive;return `<div class="taskline ${d?'done':''}"><span class="tick">${d?'✓':''}</span>${t}</div>`}).join('');
+ $('bag').textContent=(collected?`${w.item} ${w.itemName}: ${collected}/3`:'Empty')+`<br>❤️ Health: ${hearts}/3`;
+}
+function block(x,y,w,h,color){g.fillStyle=color;g.fillRect(x,y,w,h);g.fillStyle='#ffffff24';g.fillRect(x,y,w,5);g.fillStyle='#0000001c';g.fillRect(x,y+h-5,w,5)}
+function drawTree(x,y){block(x-7,y-3,14,47,'#795337');block(x-30,y-37,60,42,'#39834b');block(x-20,y-57,40,27,'#55a65a')}
+function draw(){
+ let w=worlds[level];g.clearRect(0,0,800,460);g.fillStyle=w.sky;g.fillRect(0,0,800,460);
+ // pixel sun and cloud
+ g.fillStyle='#fff0a6';g.fillRect(650,48,54,54);g.fillStyle='#ffffffb8';g.fillRect(100,70,95,17);g.fillRect(124,53,48,20);g.fillRect(430,105,110,17);g.fillRect(457,87,50,20);
+ // distant voxel hills
+ g.fillStyle=level===2?'#8a83ad':'#78b18a';g.fillRect(0,235,170,105);g.fillRect(110,195,175,145);g.fillRect(510,220,145,120);g.fillRect(645,250,155,90);
+ if(level===2){for(let x=80;x<780;x+=150){g.fillStyle='#f3f2ff';g.fillRect(x,195,30,22);g.fillRect(x+18,178,26,20)}}
+ // ground tiles
+ g.fillStyle=w.ground;g.fillRect(0,365,800,95);for(let x=0;x<800;x+=40){g.fillStyle='#ffffff15';g.fillRect(x,365,20,4);g.fillStyle='#0000000c';g.fillRect(x+20,415,20,4)}
+ drawTree(65,355);drawTree(745,355);if(level===1){drawTree(210,355);drawTree(570,355)} 
+ // stepping blocks and rocks
+ for(let i=0;i<5;i++){block(190+i*88,355-(i%2)*25,35,18,level===2?'#807b99':'#9a896d')}
+ // collectibles
+ items.forEach((it,i)=>{if(it.got)return;g.fillStyle='#fff4a6';g.fillRect(it.x-15,it.y-42,30,3);g.font='30px serif';g.textAlign='center';g.fillText(w.item,it.x,it.y-7);g.fillStyle='#fff';g.font='11px system-ui';g.fillText('PICK UP',it.x,it.y-49)});
+ // monster
+ if(monster.alive){g.font='48px serif';g.textAlign='center';g.fillText(w.monster,monster.x,monster.y);g.fillStyle='#fff';g.fillRect(monster.x-27,monster.y-62,54,7);g.fillStyle='#df5b68';g.fillRect(monster.x-26,monster.y-61,52*(monsterHP/(level===2?3:2)),5);g.fillStyle='#26334a';g.font='12px system-ui';g.fillText(w.monsterName,monster.x,monster.y-69)}
+ else{g.font='28px serif';g.fillText('✨',monster.x,monster.y-5)}
+ // gate / portal
+ let unlocked=collected>=3&&!monster.alive;block(745,285,12,80,'#76543a');block(775,285,12,80,'#76543a');block(745,280,42,10,'#b88c4f');
+ if(unlocked){g.fillStyle='#fff0b8';g.fillRect(752,297,28,62);g.fillStyle='#f4c4eb';g.fillRect(758,302,16,52);g.fillStyle='#fff';g.font='bold 12px system-ui';g.fillText(level===2?'GARDEN':'PORTAL',766,269)}
+ else{g.fillStyle='#48556a';g.fillRect(752,297,28,62);g.fillStyle='#fff';g.font='11px system-ui';g.fillText('LOCKED',766,269)}
+ // player voxel sprite
+ block(hero.x-13,hero.y-48,26,27,'#3579b8');block(hero.x-11,hero.y-22,22,20,'#d99d73');block(hero.x-14,hero.y-62,28,18,'#4b3024');
+ g.fillStyle='#243047';g.fillRect(hero.x+(hero.dir>0?4:-7),hero.y-13,4,4);g.fillRect(hero.x+(hero.dir>0?10:-13),hero.y-13,3,3);block(hero.x-11,hero.y-2,9,18,'#34445b');block(hero.x+2,hero.y-2,9,18,'#34445b');
+ g.fillStyle='#fff';g.font='bold 14px system-ui';g.fillText('Razin',hero.x,hero.y-70);
+ if(attackFlash>0){g.strokeStyle='#fff4a6';g.lineWidth=6;g.beginPath();g.arc(hero.x+hero.dir*25,hero.y-25,28,-1.1,1.1);g.stroke();attackFlash--}
+}
+function move(dx,dy){if(!started||won)return;hero.x=Math.max(30,Math.min(730,hero.x+dx));hero.y=Math.max(290,Math.min(390,hero.y+dy));if(dx)hero.dir=Math.sign(dx);items.forEach(it=>{if(!it.got&&Math.hypot(hero.x-it.x,hero.y-it.y)<38){it.got=true;collected++;say(`You found a ${worlds[level].itemName.slice(0,-1)}! (${collected}/3)`);updateUI()}});if(monster.alive&&Math.hypot(hero.x-monster.x,hero.y-monster.y)<45)say('A monster is close! Face it and press ATTACK.');draw()}
+function attack(){if(!started||won)return;if(monster.alive&&Math.abs(hero.x-monster.x)<105&&Math.abs(hero.y-monster.y)<65&&hero.dir===Math.sign(monster.x-hero.x)){monsterHP--;attackFlash=7;say(monsterHP>0?'Nice hit! Keep attacking!':'Monster defeated! The path is opening.');if(monsterHP<=0)monster.alive=false;updateUI();draw()}else{say('Move close to the monster and face it before attacking!')}}
+function interact(){if(!started)return;let unlocked=collected>=3&&!monster.alive;if(unlocked&&hero.x>700){if(level<2){level++;resetLevel();say('New world unlocked! Keep going, Razin!')}else{finish()}}else if(!unlocked)say('The portal is locked. Collect all 3 treasures and defeat the monster!');else say('Walk to the glowing portal on the right and press INTERACT.')}
+function finish(){won=true;$('gameUI').style.display='none';$('ending').style.display='block';$('endingCopy').textContent='Razin crossed the meadow, braved the whispering forest, climbed the crystal mountains and defeated every monster. At the end of the path, he found Alia waiting in her flower garden. He made it — all the way to you. This little world was full of challenges, but the best part was reaching you. ❤️'}
+function start(){level=0;hearts=3;won=false;started=true;$('startScreen').style.display='none';$('ending').style.display='none';$('gameUI').style.display='block';resetLevel();say('Razin, your quest begins! Collect the glowing treasures.')}
+function restart(){start()}
+document.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();if(k===' '){attack();return}if(k==='e'||k==='enter'){interact();return}let d={arrowleft:[-19,0],a:[-19,0],arrowright:[19,0],d:[19,0],arrowup:[0,-13],w:[0,-13],arrowdown:[0,13],s:[0,13]}[k];if(d)move(...d)});
+document.querySelectorAll('[data-move]').forEach(b=>{let dir=b.dataset.move,delta={up:[0,-15],down:[0,15],left:[-20,0],right:[20,0]}[dir];let repeat;const go=()=>move(...delta);b.addEventListener('pointerdown',e=>{e.preventDefault();go();repeat=setInterval(go,115)});['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>clearInterval(repeat)))});
+$('attackTouch').onclick=attack;$('actionBtn').onclick=()=>{if(collected>=3&&!monster.alive)interact();else attack()};$('startBtn').onclick=start;$('restartBtn').onclick=restart;$('againBtn').onclick=start;
+draw();
+</script>
+</body>
+</html>
